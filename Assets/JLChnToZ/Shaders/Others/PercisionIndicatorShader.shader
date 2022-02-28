@@ -57,46 +57,37 @@ Shader "Unlit/PercisionIndicator" {
 				return c.z * lerp(K_HSV2RGB.xxx, saturate(p - K_HSV2RGB.xxx), c.y);
 			}
 
-			half4 alphaBlend(half4 d, half4 s) {
-				half4 o;
-				o.a = s.a + d.a * (1 - s.a);
-				o.rgb = (s.rgb * s.a + d.rgb * d.a * (1 - s.a)) / o.a;
-				return o;
-			}
-
-			half4 healthColor(half health, half intensity) {
-				return half4(lerp(0.64, -0.31, saturate(health)), 1, 1 - saturate(health - 0.25), intensity);
+			half3 healthColor(half health) {
+				return half3(lerp(0.64, -0.31, saturate(health)), 1, 1 - saturate(health * 2 - 0.75));
 			}
 
 			v2f vert(appdata v) {
 				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
-				o.worldPos = mul(unity_ObjectToWorld, v.vertex);
+				o.worldPos = mul(unity_ObjectToWorld, float4(0, 0, 0, 1));
+				o.worldNorm = mul(unity_ObjectToWorld, float4(v.normal.xyz, 0));
 				#ifdef _FRAMERATE
 				o.viewDir = mul(unity_CameraToWorld, float4(0, 0, 1, 0)).xyz;
 				#endif
-				o.worldNorm = mul(unity_ObjectToWorld, float4(v.normal.xyz, 0)).xyz;
 				UNITY_TRANSFER_FOG(o, o.vertex);
 				return o;
 			}
 
 			half4 frag(v2f i): SV_Target {
-				float3 health = log2(abs(i.worldPos)) / 10 - 0.5;
-				half3 norm = abs(normalize(i.worldNorm));
+				half3 health = log2(abs(i.worldPos)) / 10 - 0.5;
+				half3 norm = i.worldNorm;
 				norm = 1 - sqrt(1 - norm * norm);
-				norm *= saturate(half3(sign(i.worldNorm)) * half3(sign(i.worldPos))) /  dot(norm, 1);
+				norm *= saturate(half3(sign(i.worldNorm)) * half3(sign(i.worldPos))) / dot(norm, 1);
 				#ifdef _DYNAMIC
-				half3 vibe = sin(i.worldNorm * 3.1 + _Time.w + half3(0, 2.1, 4.19)) + 1;
-				if (any(abs(vibe) > 0)) vibe /= dot(vibe, 1);
-				norm = max(0, norm - vibe / 10);
+				norm += (sin(i.worldNorm * 3.1 + _Time.w + half3(0, 2.1, 4.2)) + 1) / 20;
 				#endif
+				half4 col = half4(health * norm, dot(norm, 1));
 				#ifdef _FRAMERATE
-				health += lerp(unity_DeltaTime.x, unity_DeltaTime.z, 1 - dot(i.worldNorm.xyz, i.viewDir.xyz)) * 10;
+				half dt = lerp(unity_DeltaTime.z, unity_DeltaTime.x, dot(i.worldNorm.xyz, i.viewDir.xyz));
+				col.xyz += dt / 3;
+				col.w = saturate(col.w + dt * 0.5);
 				#endif
-				half4 col = healthColor(health.x, norm.x);
-				col = alphaBlend(col, healthColor(health.y, norm.y));
-				col = alphaBlend(col, healthColor(health.z, norm.z));
-				col = half4(hsv2rgb(col.xyz), dot(norm, 1));
+				col.xyz = hsv2rgb(healthColor(col.x + col.y + col.z));
 				UNITY_APPLY_FOG(i.fogCoord, col);
 				return col;
 			}
