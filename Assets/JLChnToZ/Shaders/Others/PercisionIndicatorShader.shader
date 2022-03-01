@@ -1,11 +1,13 @@
 ﻿// This is a shader for checking is the precision "healthy" at the coordinate it is in.
 // When it shows orange, red, purplish or even black means the precision is not accurate and will cause jittering.
-// Frame Rate option is for adding frame rate as a "healthy consideration", low frame rate will make the color result towards red / black.
-// Dynamic option is to to make it raves, although it is only an eye candy effect.
+// Frame Rate option is for adding frame rate as a "healthy consideration", low frame rate will make the color tint towards red / black.
+// DDynamic option is to to make it raves, although it is designed as an eye candy effect, it intentionally coded to moves towards positive quadrant so it could be act as compass in some cases.
 Shader "Unlit/PercisionIndicator" {
 	Properties {
 		[Toggle(_DYNAMIC)] _Dynamic ("Dynamic", Int) = 0
 		[Toggle(_FRAMERATE)] _FrameRate ("Frame Rate", Int) = 0
+		[Toggle(_RMAXIS)] _RmAxis ("XYZ Compass (Raymarching)", Int) = 0
+		_RmAxisSize ("Compass Size", Float) = 0.005
 		[Enum(UnityEngine.Rendering.CullMode)] _Cull ("Culling", Float) = 2
 		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("Z Test", Float) = 4
 		[Toggle] _ZWrite ("Z Write", Int) = 1
@@ -30,12 +32,17 @@ Shader "Unlit/PercisionIndicator" {
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma multi_compile_fog
-			#pragma multi_compile __ _DYNAMIC
-			#pragma multi_compile __ _FRAMERATE
+			#pragma shader_feature_local _DYNAMIC
+			#pragma shader_feature_local _FRAMERATE
+			#pragma shader_feature_local _RMAXIS
 
 			#include "UnityCG.cginc"
 
 			static const float4 K_HSV2RGB = float4(1, 2. / 3., 1. / 3., 3);
+
+			#if _RMAXIS
+			float _RmAxisSize;
+			#endif
 
 			struct appdata {
 				float4 vertex: POSITION;
@@ -49,6 +56,9 @@ Shader "Unlit/PercisionIndicator" {
 				UNITY_FOG_COORDS(2)
 				#ifdef _FRAMERATE
 				float3 viewDir: TEXCOORD3;
+				#endif
+				#ifdef _RMAXIS
+				float3 vertWorldPos: TEXCOORD4;
 				#endif
 			};
 
@@ -67,7 +77,10 @@ Shader "Unlit/PercisionIndicator" {
 				o.worldPos = mul(unity_ObjectToWorld, float4(0, 0, 0, 1));
 				o.worldNorm = mul(unity_ObjectToWorld, float4(v.normal.xyz, 0));
 				#ifdef _FRAMERATE
-				o.viewDir = mul(unity_CameraToWorld, float4(0, 0, 1, 0)).xyz;
+				o.viewDir = mul(unity_CameraToWorld, float4(0, 0, 1, 0));
+				#endif
+				#if _RMAXIS
+				o.vertWorldPos = mul(unity_ObjectToWorld, v.vertex);
 				#endif
 				UNITY_TRANSFER_FOG(o, o.vertex);
 				return o;
@@ -77,17 +90,33 @@ Shader "Unlit/PercisionIndicator" {
 				half3 health = log2(abs(i.worldPos)) / 10 - 0.5;
 				half3 norm = i.worldNorm;
 				norm = 1 - sqrt(1 - norm * norm);
-				norm *= saturate(half3(sign(i.worldNorm)) * half3(sign(i.worldPos))) / dot(norm, 1);
+				norm *= saturate(i.worldNorm * i.worldPos) / dot(norm, 1);
 				#ifdef _DYNAMIC
-				norm += (sin(i.worldNorm * 3.1 + _Time.w + half3(0, 2.1, 4.2)) + 1) / 20;
+				norm += (sin(i.worldNorm * 3.1 - _Time.w + half3(0, 2.1, 4.2)) + 1) / 20;
 				#endif
 				half4 col = half4(health * norm, dot(norm, 1));
 				#ifdef _FRAMERATE
-				half dt = lerp(unity_DeltaTime.z, unity_DeltaTime.x, dot(i.worldNorm.xyz, i.viewDir.xyz));
-				col.xyz += dt / 3;
-				col.w = saturate(col.w + dt * 0.5);
+				col += lerp(unity_DeltaTime.z, unity_DeltaTime.x, dot(i.worldNorm, i.viewDir)) * half4(2, 2, 2, 10);
 				#endif
-				col.xyz = hsv2rgb(healthColor(col.x + col.y + col.z));
+				col = half4(hsv2rgb(healthColor(col.x + col.y + col.z)), saturate(col.w));
+				#if _RMAXIS
+				half3 pos = _WorldSpaceCameraPos;
+				half3 viewDir = normalize(i.vertWorldPos - pos);
+				half4 axisSize = _RmAxisSize * half4(1, distance(pos, i.worldPos).xxx) * half4(1000, 1, 2, 5);
+				[fastopt] for (int x = 0; x < 20; x++) {
+					half3 dist = half3(
+						distance(pos.yz, i.worldPos.yz),
+						distance(pos.xz, i.worldPos.xz),
+						distance(pos.xy, i.worldPos.xy)
+					);
+					if (any(dist.xyz < axisSize.z)) {
+						half3 axis = smoothstep(axisSize.w, axisSize.y, dist);
+						col = lerp(col, half4(axis, 1), length(frac(pos * axisSize.x - _Time.y) * axis));
+						break;
+					}
+					pos += viewDir * min(min(dist.x, dist.y), dist.z);
+				}
+				#endif
 				UNITY_APPLY_FOG(i.fogCoord, col);
 				return col;
 			}
