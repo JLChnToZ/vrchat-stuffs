@@ -105,7 +105,7 @@ namespace JLChnToZ.VRC.ColorPicker {
         }
 
         void UpdatePickupable() {
-            pickup.pickupable = Networking.IsOwner(gameObject) || !syncedDragging;
+            pickup.pickupable = !isGlobal || Networking.IsOwner(gameObject) || !syncedDragging;
             if (!syncedDragging) transform.SetPositionAndRotation(indicator.position, indicator.rotation);
         }
 
