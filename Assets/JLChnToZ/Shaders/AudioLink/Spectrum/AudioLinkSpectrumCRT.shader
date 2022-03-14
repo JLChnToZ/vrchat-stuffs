@@ -22,6 +22,8 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
             #pragma fragment frag
             #pragma target 3.0
 
+            #define AL_WRAP_TIME 134217.727
+
             float4 _Color;
             float _RecordTime;
             float _Intensity;
@@ -39,7 +41,14 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
 
             float4 frag(v2f_customrendertexture IN): COLOR {
                 float2 size = float2(_CustomRenderTextureWidth, _CustomRenderTextureHeight);
-                float2 offset = float2(max(unity_DeltaTime.x / _RecordTime, 1 / size.x), 0);
+                float currentTime = AudioLinkDecodeDataAsSeconds(ALPASS_GENERALVU_LOCAL_TIME);
+                float4 lastTimeRaw = tex2D(_SelfTexture2D, align(1, size));
+                float lastTime = DecodeFloatRGBA(lastTimeRaw) * AL_WRAP_TIME;
+                float2 offset = float2((currentTime - lastTime) / _RecordTime, 0);
+                if (offset.x < -0.5) offset.x += 1;
+                if (all(IN.localTexcoord.xy >= 1 - 1 / size))
+                    return offset.x >= 1 / size.x ? EncodeFloatRGBA(currentTime / AL_WRAP_TIME) : lastTimeRaw;
+                if (offset.x < 1 / size.x) offset.x = 0;
                 float4 realtime = _Color;
                 float value = AudioLinkLerpMultiline(ALPASS_DFT + float2(IN.localTexcoord.y * AUDIOLINK_ETOTALBINS, 0))[_Channel] * _Intensity;
                 #if _RAINBOW_ON
