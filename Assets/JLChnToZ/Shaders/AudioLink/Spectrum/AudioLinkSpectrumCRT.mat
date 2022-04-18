@@ -24,7 +24,7 @@ Material:
     - _Intensity: 1
     - _Mode: 1
     - _RAINBOW: 1
-    - _RecordTime: 10
+    - _RecordTime: 5
     - _SMOOTH: 1
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
