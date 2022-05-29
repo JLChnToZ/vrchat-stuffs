@@ -9,7 +9,7 @@ It is very easy to setup.
 2. Pooled objects must be a child of the object pool GameObject in hierachy.
 3. Attach `UdonBehaviour` with `PickableManager` to all pooled objects.
 4. Setup the pooled objects' properties of `RigidBody`, `Collider` and `VRCPickup` components if you haven't done yet (these components should be added automatically at last step, if they have not been added).
-5. Set the same initial position, scale and rotation to all pooled objecs, this is for users' convenience.
-6. Set all pooled objects inactive or the runtime state of attached UDONs may be corrupted and cause it to not functioning, the script will set them active when it is needed.
+5. Set the same initial position, scale and rotation to all pooled objecs, this is for users' convenience. Or another choice is assign the custom spawn position (require a gameobject other than pooled objects to act as an anchor), which will make spawned objects spawn at the position of you desired.
+6. ~~Set all pooled objects inactive or the runtime state of attached UDONs may be corrupted and cause it to not functioning, the script will set them active when it is needed.~~ This will be automaticlly handled while the world is building, but for UDON programmers this should be noted.
 7. Duplicate the pooled objects depends on how many instances you want for maximum in a world. Instead of directly duplication, I recommend to make the pooled objects with the scripts attached as a new prefab or prefab variant, and each pooled objects are the instances of the prefab, it will easier to modify its properties afterwards.
 8. Click on the `Add all children with handlers to object pool` button in `PickablePoolManager` in Inspector panel, the pool is ready to use.
