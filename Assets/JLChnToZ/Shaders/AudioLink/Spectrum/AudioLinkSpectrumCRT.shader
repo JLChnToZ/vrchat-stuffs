@@ -2,11 +2,12 @@
 Shader "Hidden/AudioLinkSpectrumCRT" {
     Properties {
         [HDR] _Color ("Color", Color) = (1, 1, 1, 1)
+        [HDR] _Color2 ("Color 2 (For Autocorrelator Negative Values)", Color) = (1, 1, 1, 1)
         [Toggle] _RAINBOW ("Rainbow Colors", Int) = 0
         [Toggle] _SMOOTH ("Smooth Lerp", Int) = 0
         _RecordTime ("Record Time", Float) = 1
         _Intensity ("Intensity (Scale)", Float) = 1
-        [Enum(mag, 0, magEQ, 1, magfilt, 2)] _Channel ("Channel", Int) = 0
+        [Enum(mag, 0, magEQ, 1, magfilt, 2, autocorrelator, 4, uncorrelatedAutocorrelator, 5)] _Channel ("Channel", Int) = 0
     }
     SubShader {
         LOD 100
@@ -16,8 +17,8 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
             CGPROGRAM
             #include "UnityCustomRenderTexture.cginc"
             #include "Assets/AudioLink/Shaders/AudioLink.cginc"
-            #pragma multi_compile_local __ _RAINBOW_ON
-            #pragma multi_compile_local __ _SMOOTH_ON
+            #pragma shader_feature_local _RAINBOW_ON
+            #pragma shader_feature_local _SMOOTH_ON
             #pragma vertex CustomRenderTextureVertexShader
             #pragma fragment frag
             #pragma target 3.0
@@ -25,6 +26,7 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
             #define AL_WRAP_TIME 86400
 
             float4 _Color;
+            float4 _Color2;
             float _RecordTime;
             float _Intensity;
             int _Channel;
@@ -51,11 +53,24 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
                     return offset.x >= 1 / size.x ? EncodeFloatRGBA(currentTime / AL_WRAP_TIME) : lastTimeRaw;
                 if (offset.x < 1 / size.x) offset.x = 0;
                 float4 realtime = _Color;
-                float value = AudioLinkLerpMultiline(ALPASS_DFT + float2(IN.localTexcoord.y * AUDIOLINK_ETOTALBINS, 0))[_Channel] * _Intensity;
+                float4 srcValue;
+                if (_Channel > 3)
+                    srcValue = AudioLinkLerp(ALPASS_AUTOCORRELATOR + float2(IN.localTexcoord.y * AUDIOLINK_WIDTH, 0));
+                else
+                    srcValue = AudioLinkLerpMultiline(ALPASS_DFT + float2(IN.localTexcoord.y * AUDIOLINK_ETOTALBINS, 0));
+                float value = srcValue[int(fmod(_Channel, 4))] * _Intensity;
                 #if _RAINBOW_ON
+                if (_Channel > 3) {
+                    float3 hsv = saturate(float3(frac(0.6 - value / 32), 1, abs(value) * 4));
+                    realtime *= float4(hsv2rgb(hsv), hsv.z);
+                } else {
                     float3 hsv = saturate(float3(0.6 - value / 2, 1, value * 10));
                     realtime *= float4(hsv2rgb(hsv), hsv.z);
+                }
                 #else
+                if (_Channel > 3)
+                    realtime = _Color * max(0, value) + _Color2 * max(0, -value);
+                else
                     realtime *= value;
                 #endif
                 float4 record = tex2D(_SelfTexture2D, align(IN.localTexcoord.xy - offset, size));
