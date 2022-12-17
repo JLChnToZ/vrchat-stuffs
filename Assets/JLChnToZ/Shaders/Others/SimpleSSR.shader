@@ -5,7 +5,6 @@ Shader "JLChnToZ/SimpleSSR" {
         _BumpMap ("Normal Map", 2D) = "bump" {}
         _NormalPower ("Normal Power", Range(0, 2)) = 1
         [IntRange] _MaxIteration ("Max Iteration", Range(20, 1000)) = 60
-        _StepSize ("Step Size", Float) = 0.05
         _Threshold ("Hit Threshold", Float) = 0.1
     }
     SubShader {
@@ -53,7 +52,6 @@ Shader "JLChnToZ/SimpleSSR" {
             sampler2D _BumpMap;
             float4 _BumpMap_ST;
             float _NormalPower;
-            float _StepSize;
             float _Threshold;
             int _MaxIteration;
 
@@ -105,18 +103,17 @@ Shader "JLChnToZ/SimpleSSR" {
                 float3 startPos = position;
                 float3 inDir = normalize(position - _WorldSpaceCameraPos);
                 float3 reflectedDir = normalize(reflect(inDir, normal));
-                float angleDiff = 1 + dot(inDir, normal);
-                float3 ray = reflectedDir * _StepSize;
+                float threshold = (1 + dot(inDir, normal)) * _Threshold;
+                float3 ray = reflectedDir * threshold;
                 half3 refl = getReflectedColor(position, reflectedDir, 0); // Base color from blended reflection probe.
                 [fastopt] for (int i = 0; i < _MaxIteration; i++) {
-                    float camDist = length(position - _WorldSpaceCameraPos);
-                    position += ray * camDist * angleDiff;
+                    position += ray;
                     float4 screenPos = screenProjCoordLod(position);
                     if (any(screenPos.xy < 0 || screenPos.xy > 1)) break; // Stop tracing when the ray already shoot to outside of the screen, and prevent color from clamped position popping out.
                     if (length(
                             LinearEyeDepth(tex2Dlod(_CameraDepthTexture, screenPos).x) +
                             mul(UNITY_MATRIX_V, float4(position, 1)).z
-                        ) < camDist * angleDiff * _Threshold) {
+                        ) < threshold) {
                         half4 refl2 = tex2Dlod(_GrabTexture, screenPos);
                         return lerp(
                             refl, refl2.rgb,
