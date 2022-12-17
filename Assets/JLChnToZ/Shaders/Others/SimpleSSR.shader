@@ -33,7 +33,7 @@ Shader "JLChnToZ/SimpleSSR" {
             struct appdata {
                 float4 vertex : POSITION;
                 float3 normal : NORMAL;
-				float4 tangent : TANGENT;
+                float4 tangent : TANGENT;
                 float2 uv : TEXCOORD0;
             };
 
