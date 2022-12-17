@@ -117,7 +117,7 @@ Shader "JLChnToZ/SimpleSSR" {
                         half4 refl2 = tex2Dlod(_GrabTexture, screenPos);
                         return lerp(
                             refl, refl2.rgb,
-                            refl2.a * (1 - sqrt(float(i) / float(_MaxIteration))) / (1 + length(startPos - position))
+                            refl2.a * (1 - sqrt(float(i) / float(_MaxIteration))) * (1 - smoothstep(0, 0.5, max(abs(screenPos.x - 0.5), abs(screenPos.y - 0.5)))) / (1 + length(startPos - position))
                         );
                     }
                 }
