@@ -34,6 +34,7 @@ Shader "JLChnToZ/SimpleSSR" {
                 float3 normal : NORMAL;
                 float4 tangent : TANGENT;
                 float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f {
@@ -44,10 +45,12 @@ Shader "JLChnToZ/SimpleSSR" {
                 float3 binormal : TEXCOORD3;
                 float3 tangent : TEXCOORD4;
                 UNITY_FOG_COORDS(5)
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             float4 _Color;
-            sampler2D _CameraDepthTexture;
+            UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
             sampler2D _GrabTexture;
             sampler2D _BumpMap;
             float4 _BumpMap_ST;
@@ -109,15 +112,26 @@ Shader "JLChnToZ/SimpleSSR" {
                 [fastopt] for (int i = 0; i < _MaxIteration; i++) {
                     position += ray;
                     float4 screenPos = screenProjCoordLod(position);
+                    #if UNITY_SINGLE_PASS_STEREO
+                    float4 scaleOffset = unity_StereoScaleOffset[unity_StereoEyeIndex];
+                    float2 screenPosSingleEye = (screenPos.xy - scaleOffset.zw) / scaleOffset.xy;
+                    if (any(screenPosSingleEye < 0 || screenPosSingleEye > 1)) break;
+                    #else
                     if (any(screenPos.xy < 0 || screenPos.xy > 1)) break; // Stop tracing when the ray already shoot to outside of the screen, and prevent color from clamped position popping out.
+                    #endif
                     if (length(
-                            LinearEyeDepth(tex2Dlod(_CameraDepthTexture, screenPos).x) +
+                            LinearEyeDepth(SAMPLE_DEPTH_TEXTURE_LOD(_CameraDepthTexture, screenPos).x) +
                             mul(UNITY_MATRIX_V, float4(position, 1)).z
                         ) < threshold) {
                         half4 refl2 = tex2Dlod(_GrabTexture, screenPos);
+                        #if UNITY_SINGLE_PASS_STEREO
+                        screenPos.xy = abs(screenPosSingleEye - 0.5);
+                        #else
+                        screenPos.xy = abs(screenPos.xy - 0.5);
+                        #endif
                         return lerp(
                             refl, refl2.rgb,
-                            refl2.a * (1 - sqrt(float(i) / float(_MaxIteration))) * (1 - smoothstep(0, 0.5, max(abs(screenPos.x - 0.5), abs(screenPos.y - 0.5)))) / (1 + length(startPos - position))
+                            refl2.a * (1 - sqrt(float(i) / float(_MaxIteration))) * (1 - smoothstep(0, 0.5, max(screenPos.x, screenPos.y))) / (1 + length(startPos - position))
                         );
                     }
                 }
@@ -126,6 +140,9 @@ Shader "JLChnToZ/SimpleSSR" {
 
             v2f vert(appdata v) {
                 v2f o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_TRANSFER_INSTANCE_ID(v, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.position = mul(unity_ObjectToWorld, v.vertex);
                 o.normal = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
@@ -137,6 +154,8 @@ Shader "JLChnToZ/SimpleSSR" {
             }
 
             half4 frag(v2f i) : SV_Target {
+                UNITY_SETUP_INSTANCE_ID(i);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float3x3 TBN = transpose(float3x3(i.tangent, i.binormal, i.normal));
                 float3 normal = UnpackNormal(lerp(float4(0.5, 0.5, 1, 1), tex2D(_BumpMap, i.uv), _NormalPower));
                 half4 col = half4(calcSSR(i.position, mul(TBN, normal)), 1) * _Color;
