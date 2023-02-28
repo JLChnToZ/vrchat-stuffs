@@ -29,7 +29,7 @@ Shader "SPORADIC-E/NixieClock-AudioLink-OneDigit" {
 			#define EPSILON 1.192092896e-07
       #define VRCCLOCK_LOCAL_TIME int2(1, 0)
 
-      #include "Assets/AudioLink/Shaders/AudioLink.cginc"
+      #include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
 
       sampler2D _VRCClockTexture;
       float4 _VRCClockTexture_TexelSize;

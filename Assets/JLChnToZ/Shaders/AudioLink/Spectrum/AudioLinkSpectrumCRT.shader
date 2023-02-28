@@ -1,4 +1,4 @@
-﻿// Renders AudioLink DFT as spectrum graph to CustomRenderTexture
+// Renders AudioLink DFT as spectrum graph to CustomRenderTexture
 Shader "Hidden/AudioLinkSpectrumCRT" {
     Properties {
         [HDR] _Color ("Color", Color) = (1, 1, 1, 1)
@@ -18,7 +18,7 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
         Pass {
             CGPROGRAM
             #include "UnityCustomRenderTexture.cginc"
-            #include "Assets/AudioLink/Shaders/AudioLink.cginc"
+            #include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
             #pragma shader_feature_local __ _CUSTOM_GRADIANT_ON _RAINBOW_ON
             #pragma shader_feature_local _SMOOTH_ON
             #pragma vertex CustomRenderTextureVertexShader

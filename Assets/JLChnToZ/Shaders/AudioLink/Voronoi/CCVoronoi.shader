@@ -1,4 +1,4 @@
-﻿// An attempt to recreate the Voronoi diagram shown in Color Chord 2 demo video, using pure CG (HLSL).
+// An attempt to recreate the Voronoi diagram shown in Color Chord 2 demo video, using pure CG (HLSL).
 // https://youtu.be/UI4eqOP2AU0
 // It uses internal data in AudioLink, tested with AudioLink v0.2.8.
 Shader "Unlit/CCVoronoi" {
@@ -25,7 +25,7 @@ Shader "Unlit/CCVoronoi" {
             #pragma multi_compile_fog
 
             #include "UnityCG.cginc"
-            #include "Assets/AudioLink/Shaders/AudioLink.cginc"
+            #include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
 
             #define TWO_PI 6.28318530718
 

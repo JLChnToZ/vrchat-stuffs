@@ -1,4 +1,4 @@
-﻿// DJ Booth Like Spectrum Graph Shader
+// DJ Booth Like Spectrum Graph Shader
 Shader "Unlit/AudioLinkDJSpectrum" {
     Properties {
         [PerRendererData][HideInInspector] _MainTex ("Unused", 2D) = "white" {}
@@ -19,7 +19,7 @@ Shader "Unlit/AudioLinkDJSpectrum" {
             #pragma multi_compile_fog
 
             #include "UnityCG.cginc"
-            #include "Assets/AudioLink/Shaders/AudioLink.cginc"
+            #include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
             #define AVG_SIZE 128
 
             half4 _Color1;

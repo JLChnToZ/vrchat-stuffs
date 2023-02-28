@@ -1,4 +1,4 @@
-﻿// Single Pass X-Y Oscilloscope Fragment Shader
+// Single Pass X-Y Oscilloscope Fragment Shader
 Shader "Unlit/AudioLinkOscilloscope" {
 	Properties {
 		[HDR] _Color ("Line Color (RGB) Line Intensity (A)", Color) = (0, 1, 0.5, 0.1)
@@ -20,7 +20,7 @@ Shader "Unlit/AudioLinkOscilloscope" {
 			#pragma multi_compile_fog
 
 			#include "UnityCG.cginc"
-			#include "Assets/AudioLink/Shaders/AudioLink.cginc"
+			#include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
 
 			struct appdata {
 				float4 vertex: POSITION;
