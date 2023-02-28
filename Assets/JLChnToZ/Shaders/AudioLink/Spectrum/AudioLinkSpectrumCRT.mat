@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: AudioLinkSpectrumCRT
   m_Shader: {fileID: 4800000, guid: 7ce12c724acc5ba489d86ed2e84d54e4, type: 3}
-  m_ShaderKeywords: _RAINBOW _RAINBOW_ON _SMOOTH
+  m_ShaderKeywords: _CUSTOM_GRADIANT_ON _RAINBOW _SMOOTH
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -18,12 +18,17 @@ Material:
   disabledShaderPasses: []
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _GradiantTex:
+        m_Texture: {fileID: 2800000, guid: 24bb5e9c85766fa48a99c9547b341d88, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Floats:
-    - _Channel: 0
+    - _CUSTOM_GRADIANT: 1
+    - _Channel: 5
     - _Intensity: 1
     - _Mode: 1
-    - _RAINBOW: 1
+    - _RAINBOW: 0
     - _RecordTime: 5
     - _SMOOTH: 1
     m_Colors:

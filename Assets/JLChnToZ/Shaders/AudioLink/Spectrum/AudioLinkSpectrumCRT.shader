@@ -4,6 +4,8 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
         [HDR] _Color ("Color", Color) = (1, 1, 1, 1)
         [HDR] _Color2 ("Color 2 (For Autocorrelator Negative Values)", Color) = (1, 1, 1, 1)
         [Toggle] _RAINBOW ("Rainbow Colors", Int) = 0
+        [Toggle] _CUSTOM_GRADIANT ("Custom Gradiant", Int) = 0
+        _GradiantTex ("Gradiant Texture", 2D) = "black" {}
         [Toggle] _SMOOTH ("Smooth Lerp", Int) = 0
         _RecordTime ("Record Time", Float) = 1
         _Intensity ("Intensity (Scale)", Float) = 1
@@ -17,7 +19,7 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
             CGPROGRAM
             #include "UnityCustomRenderTexture.cginc"
             #include "Assets/AudioLink/Shaders/AudioLink.cginc"
-            #pragma shader_feature_local _RAINBOW_ON
+            #pragma shader_feature_local __ _CUSTOM_GRADIANT_ON _RAINBOW_ON
             #pragma shader_feature_local _SMOOTH_ON
             #pragma vertex CustomRenderTextureVertexShader
             #pragma fragment frag
@@ -31,7 +33,9 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
             float _Intensity;
             int _Channel;
             
-            #if _RAINBOW_ON
+            #if _CUSTOM_GRADIANT_ON
+            sampler2D _GradiantTex;
+            #elif _RAINBOW_ON
             float3 hsv2rgb(float3 hsv) {
                 return hsv.z * lerp(1, saturate(abs(fmod(hsv.x * 6 + float3(0, 4, 2), 6) - 3) - 1), hsv.y);
             }
@@ -59,7 +63,9 @@ Shader "Hidden/AudioLinkSpectrumCRT" {
                 else
                     srcValue = AudioLinkLerpMultiline(ALPASS_DFT + float2(IN.localTexcoord.y * AUDIOLINK_ETOTALBINS, 0));
                 float value = srcValue[int(fmod(_Channel, 4))] * _Intensity;
-                #if _RAINBOW_ON
+                #if _CUSTOM_GRADIANT_ON
+                realtime *= tex2Dlod(_GradiantTex, float4(abs(value), (sign(value) + 1.) / 2., 0, 0));
+                #elif _RAINBOW_ON
                 if (_Channel > 3) {
                     float3 hsv = saturate(float3(frac(0.6 - value / 32), 1, abs(value) * 4));
                     realtime *= float4(hsv2rgb(hsv), hsv.z);

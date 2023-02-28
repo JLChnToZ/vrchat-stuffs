@@ -63,23 +63,7 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
-# Packed Addressables
-/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
-
-# Temporary auto-generated Android Assets
-/[Aa]ssets/[Ss]treamingAssets/aa.meta
-/[Aa]ssets/[Ss]treamingAssets/aa/*
-
-# VRChat SDK & UdonSharp related
-/[Aa]ssets/VRCSDK/
-/[Aa]ssets/VRCSDK.meta
-/[Aa]ssets/VRChat Examples/
-/[Aa]ssets/VRChat Examples.meta
-/[Aa]ssets/Udon/
-/[Aa]ssets/Udon.meta
-/[Aa]ssets/UdonSharp/
-/[Aa]ssets/UdonSharp.meta
-/[Aa]ssets/SerializedUdonPrograms/
-/[Aa]ssets/SerializedUdonPrograms.meta
-/[Aa]ssets/Gizmos/UdonSharp/
-/[Aa]ssets/Gizmos/UdonSharp.meta
+.idea/.idea.vpm-package-maker/.idea
+Assets/PackageMakerWindowData.asset*
+.idea
+.vscode

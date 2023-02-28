@@ -11,7 +11,7 @@
 // https://www.shadertoy.com/view/XsBSRG
 
 #ifdef AUDIO_LINK
-#include "Assets/AudioLink/Shaders/AudioLink.cginc"
+#include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
 #endif
 
 int _Buildings;

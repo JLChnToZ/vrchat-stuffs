@@ -1,7 +1,10 @@
 ﻿Shader "Unlit/ColorPickerPalette" {
     Properties {}
     SubShader {
-        Tags { "RenderType"="Opaque" }
+        Tags {
+            "RenderType" = "Opaque"
+            "PreviewType" = "Plane"
+        }
         LOD 100
         Pass {
             CGPROGRAM
@@ -22,8 +25,8 @@
                 float4 vertex : SV_POSITION;
             };
 
-            float3 hsv2rgb(float3 c) {
-                return c.z * lerp(1, saturate(abs(fmod(c.x * 6 + float3(0, 4, 2), 6) - 3) - 1), c.y);
+            float3 hsv2rgb(float3 hsv) {
+                return hsv.z * lerp(1, saturate(abs(fmod(hsv.x * 6 + float3(0, 4, 2), 6) - 3) - 1), hsv.y);
             }
 
             v2f vert(appdata v) {
@@ -34,11 +37,11 @@
                 return o;
             }
 
-            fixed4 frag(v2f i) : SV_Target {
+            float4 frag(v2f i) : SV_Target {
                 float2 uv = (i.uv - 0.5) * 2;
                 float3 hsv = float3(frac(atan2(uv.y, uv.x) * 0.16), length(uv), 1); // 0.16 ~= 1 / PI / 2
                 if (hsv.y > 1) discard;
-                fixed4 col = fixed4(hsv2rgb(hsv), 1);
+                float4 col = float4(hsv2rgb(hsv), 1);
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
             }

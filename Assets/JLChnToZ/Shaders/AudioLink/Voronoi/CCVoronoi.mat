@@ -20,9 +20,9 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Floats:
-    - _Intensity: 1
+    - _Intensity: 2.5
     - _MaxAlpha: 1
-    - _Smooth: 0.002
+    - _Smooth: 0.005
     m_Colors:
     - _Color: {r: 0, g: 0, b: 0, a: 0}
     - _Offset: {r: 0.5, g: 0.5, b: 0.6, a: 0}

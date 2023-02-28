@@ -1,50 +1,29 @@
 ﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Components;
-using VRC.SDKBase;
 
 namespace JLChnToZ.VRC.ColorPicker {
     [RequireComponent(typeof(VRCPickup))]
-    [UdonBehaviourSyncMode(BehaviourSyncMode.Continuous)]
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class ColorPickerHandle : UdonSharpBehaviour {
-        const float TWO_PI = Mathf.PI * 2;
         [SerializeField] float radius = 0.5F;
         [SerializeField] float height = 1F;
         [SerializeField] Transform indicator;
-        [SerializeField] bool isGlobal;
-        [SerializeField] Color color = Color.white;
         UdonSharpBehaviour[] callbacks;
         int callbackCount;
         Renderer indicatorOrb;
         LineRenderer line;
-        VRCPickup pickup;
-        [UdonSynced] Color syncedColor;
-        [UdonSynced] bool syncedDragging;
-        bool isRemoteDragging;
+        public Color selectedColor = Color.white;
         bool isDragging;
         MaterialPropertyBlock propertyBlock;
 
-        public Color SelectedColor {
-            get => color;
-            set {
-                if (!Networking.IsOwner(gameObject))
-                    Networking.SetOwner(Networking.LocalPlayer, gameObject);
-                color = value;
-                UpdateColor();
-            }
-        }
-
         void Start() {
-            line = indicator.GetComponentInChildren<LineRenderer>(true);
-            indicatorOrb = indicator.GetComponentInChildren<MeshRenderer>(true);
-            if (indicatorOrb == null) indicatorOrb = indicator.GetComponentInChildren<SkinnedMeshRenderer>(true);
-            pickup = (VRCPickup)GetComponent(typeof(VRCPickup));
+            line = indicator.GetComponentInChildren<LineRenderer>();
+            indicatorOrb = indicator.GetComponentInChildren<MeshRenderer>();
+            if (indicatorOrb == null) indicatorOrb = indicator.GetComponentInChildren<SkinnedMeshRenderer>();
             propertyBlock = new MaterialPropertyBlock();
             line.useWorldSpace = false;
-            if (isGlobal) syncedColor = color;
         }
-
-        void OnEnable() => UpdatePickupable();
 
         void Update() {
             indicator.SetPositionAndRotation(transform.position, transform.rotation);
@@ -54,13 +33,13 @@ namespace JLChnToZ.VRC.ColorPicker {
             pos.x = posXZ.x;
             pos.z = posXZ.y;
             pos.y = Mathf.Clamp(pos.y, 0, height);
-            float h = Mathf.Repeat(Mathf.Atan2(pos.z, pos.x) / TWO_PI, 1);
+            float h = Mathf.Repeat(Mathf.Atan2(pos.z, pos.x) / Mathf.PI / 2, 1);
             float s = posXZ.magnitude / radius;
             float v = 1 - pos.y / height;
-            SelectedColor = Color.HSVToRGB(h, s, v);
+            selectedColor = Color.HSVToRGB(h, s, v);
             indicator.localPosition = pos;
             if (line != null) {
-                line.startColor = color;
+                line.startColor = selectedColor;
                 line.endColor = Color.HSVToRGB(h, s, 1);
                 line.positionCount = 2;
                 line.SetPosition(0, GetLinePos(pos));
@@ -68,7 +47,7 @@ namespace JLChnToZ.VRC.ColorPicker {
                 line.SetPosition(1, GetLinePos(pos));
             }
             indicatorOrb.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor("_Color", color);
+            propertyBlock.SetColor("_Color", selectedColor);
             indicatorOrb.SetPropertyBlock(propertyBlock);
         }
 
@@ -78,48 +57,24 @@ namespace JLChnToZ.VRC.ColorPicker {
 
         public override void OnPickup() {
             isDragging = true;
-            if (isGlobal) {
-                isRemoteDragging = true;
-                syncedDragging = true;
-            }
         }
 
         public override void OnDrop() {
             isDragging = false;
-            if (isGlobal) {
-                isRemoteDragging = false;
-                syncedDragging = false;
-            }
-            UpdatePickupable();
-            ColorChangeCallback();
+            transform.SetPositionAndRotation(indicator.position, indicator.rotation);
+            if (callbacks != null)
+                foreach (var callback in callbacks)
+                    if (callback == null) callback.SendCustomEvent("ColorChanged");
         }
 
-        public override void OnDeserialization() {
-            if (!isGlobal) return;
-            if (syncedColor != color) SelectedColor = color;
-            if (isRemoteDragging != syncedDragging) {
-                isRemoteDragging = syncedDragging;
-                if (!syncedDragging) ColorChangeCallback();
-            }
-            UpdatePickupable();
-        }
-
-        void UpdatePickupable() {
-            pickup.pickupable = !isGlobal || Networking.IsOwner(gameObject) || !syncedDragging;
-            if (!syncedDragging) transform.SetPositionAndRotation(indicator.position, indicator.rotation);
-        }
-
-        public override void OnOwnershipTransferred(VRCPlayerApi player) {
-            if (player.isLocal) pickup.pickupable = true;
-        }
-
-        public void UpdateColor() {
+        public void SetColor(Color newColor) {
             float h, s, v;
-            Color.RGBToHSV(color, out h, out s, out v);
-            h *= TWO_PI;
+            Color.RGBToHSV(newColor, out h, out s, out v);
+            h *= Mathf.PI * 2;
             s *= radius;
             v = (1 - v) * height;
-            indicator.localPosition = new Vector3(Mathf.Sin(h) * s, v, Mathf.Cos(h) * s);
+            indicator.localPosition = new Vector3(Mathf.Cos(h) * s, v, Mathf.Sin(h) * s);
+            selectedColor = newColor;
             if (!isDragging) OnDrop();
         }
 
@@ -132,12 +87,6 @@ namespace JLChnToZ.VRC.ColorPicker {
                 callbacks = temp;
             }
             callbacks[callbackCount++] = ub;
-        }
-
-        void ColorChangeCallback() {
-            if (callbacks != null)
-                foreach (var callback in callbacks)
-                    if (callback == null) callback.SendCustomEvent("ColorChanged");
         }
     }
 }
